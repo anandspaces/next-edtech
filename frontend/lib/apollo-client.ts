@@ -1,9 +1,18 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
+import { onError } from '@apollo/client/link/error';
+import { logger } from './logger';
 
 // Connect to the backend GraphQL server
+const graphqlUrl = process.env.NEXT_PUBLIC_GRAPHQL_URL;
+
+// Log the API connection details
+logger.connection('Apollo Client Configuration');
+logger.info(`GraphQL URL: ${graphqlUrl || 'NOT SET - Check environment variables!'}`);
+logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
 const httpLink = createHttpLink({
-  uri: process.env.NEXT_PUBLIC_GRAPHQL_URL,
+  uri: graphqlUrl,
 });
 
 const authLink = setContext((_, { headers }) => {
@@ -17,6 +26,14 @@ const authLink = setContext((_, { headers }) => {
     }
   }
 
+  // Log request details (only in development)
+  logger.connection('Making GraphQL request', {
+    url: graphqlUrl,
+    userId: user?.id || 'anonymous',
+    userName: user?.name || 'not logged in',
+    timestamp: new Date().toLocaleTimeString()
+  });
+
   return {
     headers: {
       ...headers,
@@ -27,8 +44,30 @@ const authLink = setContext((_, { headers }) => {
   }
 });
 
+// Error link for logging API errors
+const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+  if (graphQLErrors) {
+    graphQLErrors.forEach(({ message, locations, path }) => {
+      logger.error('GraphQL Error', {
+        message,
+        locations,
+        path,
+        operation: operation.operationName
+      });
+    });
+  }
+
+  if (networkError) {
+    logger.error('Network Error', {
+      message: networkError.message,
+      url: graphqlUrl,
+      operation: operation.operationName
+    });
+  }
+});
+
 export const apolloClient = new ApolloClient({
-  link: authLink.concat(httpLink),
+  link: errorLink.concat(authLink).concat(httpLink),
   cache: new InMemoryCache({
     typePolicies: {
       Course: {
