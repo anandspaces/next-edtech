@@ -4,7 +4,7 @@ import { setContext } from '@apollo/client/link/context';
 // Connect to the backend GraphQL server
 const httpLink = createHttpLink({
   uri: process.env.NODE_ENV === 'production' 
-    ? 'https://your-backend-url.com/graphql' 
+    ? 'https://next-edtech.onrender.com/graphql' 
     : 'http://localhost:4000/graphql',
 });
 
