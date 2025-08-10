@@ -5,12 +5,12 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   return NextResponse.json({
-    error: 'This endpoint is deprecated. Frontend now connects directly to http://localhost:4000/graphql'
+    error: 'This endpoint is deprecated. Frontend now connects directly to api/graphql'
   }, { status: 410 });
 }
 
 export async function GET() {
   return NextResponse.json({
-    message: 'Frontend GraphQL proxy - deprecated. Use http://localhost:4000/graphql directly.'
+    message: 'Frontend GraphQL proxy - deprecated. Use api/graphql directly.'
   });
 }
