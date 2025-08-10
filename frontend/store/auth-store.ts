@@ -14,6 +14,7 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, name: string, role: UserRole) => void;
+  loginWithBackendUser: (backendUser: { id: string; email: string; name: string }, role: UserRole) => void;
   logout: () => void;
 }
 
@@ -27,6 +28,15 @@ export const useAuthStore = create<AuthState>()(
           id: Date.now().toString(),
           email,
           name,
+          role,
+        };
+        set({ user, isAuthenticated: true });
+      },
+      loginWithBackendUser: (backendUser: { id: string; email: string; name: string }, role: UserRole) => {
+        const user: User = {
+          id: backendUser.id,
+          email: backendUser.email,
+          name: backendUser.name,
           role,
         };
         set({ user, isAuthenticated: true });
