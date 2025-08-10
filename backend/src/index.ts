@@ -105,6 +105,13 @@ async function startServer() {
     }),
   );
 
+  app.get('/', (req, res) => {
+    res.json({ 
+      status: 'API is running',
+      graphql: '/graphql',
+      timestamp: new Date().toISOString()
+    });
+  });
   // Health check endpoint
   app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
