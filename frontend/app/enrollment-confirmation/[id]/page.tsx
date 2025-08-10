@@ -7,6 +7,7 @@ import { CheckCircleIcon, HomeIcon, BookOpenIcon } from '@heroicons/react/24/out
 import { useCourseStore, Course } from '@/store/course-store';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { getCourseImage } from '@/lib/course-images';
 
 // Mock courses data
 const mockCourses: Course[] = [
@@ -64,7 +65,12 @@ const EnrollmentConfirmationPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner 
+          size="lg" 
+          variant="pulse" 
+          text="Processing enrollment..." 
+          className="p-8"
+        />
       </div>
     );
   }

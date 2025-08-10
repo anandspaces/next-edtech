@@ -19,6 +19,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { GET_COURSE } from '@/lib/graphql/queries';
 import { ENROLL_USER } from '@/lib/graphql/mutations';
 import { Course as BackendCourse, convertLevelToFrontend } from '@/lib/types';
+import { getCourseImage } from '@/lib/course-images';
 
 
 
@@ -50,7 +51,7 @@ const CourseDetailPage: React.FC = () => {
         instructor: backendCourse.enrollments?.find(e => e.role === 'PROFESSOR')?.user?.name || 'Unknown',
         duration: '8-12 weeks',
         students: backendCourse.enrollments?.filter(e => e.role === 'STUDENT').length || 0,
-        image: `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000000)}/pexels-photo-${Math.floor(Math.random() * 1000000)}.jpeg?auto=compress&cs=tinysrgb&w=800`
+        image: getCourseImage(backendCourse.id)
       };
       setSelectedCourse(frontendCourse);
     }
@@ -91,8 +92,13 @@ const CourseDetailPage: React.FC = () => {
 
   if (courseLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+        <LoadingSpinner 
+          size="xl" 
+          variant="wave" 
+          text="Loading course details..." 
+          className="p-8"
+        />
       </div>
     );
   }

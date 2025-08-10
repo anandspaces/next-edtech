@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useCourseStore, Course } from '@/store/course-store';
 import CourseGrid from '@/components/course/CourseGrid';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { getCourseImage } from '@/lib/course-images';
 
 // Mock courses data
 const mockCourses: Course[] = [

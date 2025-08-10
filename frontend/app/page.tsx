@@ -10,70 +10,9 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { GET_COURSES } from '@/lib/graphql/queries';
 import { Course as BackendCourse, convertLevelToFrontend } from '@/lib/types';
+import { getCourseImage } from '@/lib/course-images';
 
-// Mock courses data
-const mockCourses: Course[] = [
-  {
-    id: '1',
-    title: 'Introduction to React',
-    description: 'Learn the fundamentals of React including components, hooks, and state management. This comprehensive course covers everything from basic concepts to advanced patterns.',
-    level: 'Beginner',
-    instructor: 'John Smith',
-    duration: '8 weeks',
-    students: 1234,
-    image: 'https://images.pexels.com/photos/11035380/pexels-photo-11035380.jpeg?auto=compress&cs=tinysrgb&w=800'
-  },
-  {
-    id: '2',
-    title: 'Advanced JavaScript Patterns',
-    description: 'Master advanced JavaScript concepts including closures, prototypes, and design patterns. Dive deep into modern JavaScript features.',
-    level: 'Advanced',
-    instructor: 'Sarah Johnson',
-    duration: '12 weeks',
-    students: 856,
-    image: 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=800'
-  },
-  {
-    id: '3',
-    title: 'Node.js Backend Development',
-    description: 'Build robust backend applications with Node.js, Express, and MongoDB. Learn about RESTful APIs and authentication.',
-    level: 'Intermediate',
-    instructor: 'Mike Brown',
-    duration: '10 weeks',
-    students: 692,
-    image: 'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=800'
-  },
-  {
-    id: '4',
-    title: 'Python for Data Science',
-    description: 'Explore data analysis and visualization using Python, pandas, and matplotlib. Perfect for beginners in data science.',
-    level: 'Beginner',
-    instructor: 'Emily Davis',
-    duration: '6 weeks',
-    students: 1567,
-    image: 'https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=800'
-  },
-  {
-    id: '5',
-    title: 'Machine Learning Fundamentals',
-    description: 'Understanding machine learning algorithms, training models, and making predictions with real-world datasets.',
-    level: 'Intermediate',
-    instructor: 'David Wilson',
-    duration: '14 weeks',
-    students: 943,
-    image: 'https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=800'
-  },
-  {
-    id: '6',
-    title: 'Advanced React & TypeScript',
-    description: 'Build complex applications with React, TypeScript, and modern development practices. Includes testing and deployment.',
-    level: 'Advanced',
-    instructor: 'Lisa Chen',
-    duration: '16 weeks',
-    students: 478,
-    image: 'https://images.pexels.com/photos/1181298/pexels-photo-1181298.jpeg?auto=compress&cs=tinysrgb&w=800'
-  }
-];
+
 
 const HomePage: React.FC = () => {
   const { courses, setCourses } = useCourseStore();
@@ -95,7 +34,7 @@ const HomePage: React.FC = () => {
         instructor: backendCourse.enrollments?.find(e => e.role === 'PROFESSOR')?.user?.name || 'Unknown',
         duration: '8-12 weeks', // Default duration
         students: backendCourse.enrollments?.length || 0,
-        image: `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000000)}/pexels-photo-${Math.floor(Math.random() * 1000000)}.jpeg?auto=compress&cs=tinysrgb&w=800`
+        image: getCourseImage(backendCourse.id)
       }));
       setCourses(frontendCourses);
     }
@@ -127,8 +66,13 @@ const HomePage: React.FC = () => {
 
   if (coursesLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <LoadingSpinner 
+          size="xl" 
+          variant="dots" 
+          text="Loading courses..." 
+          className="p-8"
+        />
       </div>
     );
   }

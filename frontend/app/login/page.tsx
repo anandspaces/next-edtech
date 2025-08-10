@@ -9,6 +9,7 @@ import { useAuthStore, UserRole } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 import { GET_USERS } from '@/lib/graphql/queries';
 import { User } from '@/lib/types';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -124,7 +125,12 @@ const LoginPage: React.FC = () => {
             className="w-full"
             disabled={isLoading || usersLoading || !email || !name}
           >
-            {isLoading || usersLoading ? 'Signing In...' : 'Sign In'}
+            {isLoading || usersLoading ? (
+              <div className="flex items-center space-x-2">
+                <LoadingSpinner size="sm" variant="dots" />
+                <span>Signing In...</span>
+              </div>
+            ) : 'Sign In'}
           </Button>
         </form>
 
