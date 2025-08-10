@@ -10,72 +10,54 @@ import {
   CheckCircleIcon,
   PencilIcon
 } from '@heroicons/react/24/outline';
+import { useQuery, useMutation } from '@apollo/client';
 import { useAuthStore } from '@/store/auth-store';
 import { useCourseStore, Course } from '@/store/course-store';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { GET_COURSE } from '@/lib/graphql/queries';
+import { ENROLL_USER } from '@/lib/graphql/mutations';
+import { Course as BackendCourse, convertLevelToFrontend } from '@/lib/types';
 
-// Mock courses data
-const mockCourses: Course[] = [
-  {
-    id: '1',
-    title: 'Introduction to React',
-    description: 'Learn the fundamentals of React including components, hooks, and state management. This comprehensive course covers everything from basic concepts to advanced patterns, providing hands-on experience through practical projects.',
-    level: 'Beginner',
-    instructor: 'John Smith',
-    duration: '8 weeks',
-    students: 1234,
-    image: 'https://images.pexels.com/photos/11035380/pexels-photo-11035380.jpeg?auto=compress&cs=tinysrgb&w=800'
-  },
-  {
-    id: '2',
-    title: 'Advanced JavaScript Patterns',
-    description: 'Master advanced JavaScript concepts including closures, prototypes, and design patterns. Dive deep into modern JavaScript features and learn how to write maintainable, scalable code.',
-    level: 'Advanced',
-    instructor: 'Sarah Johnson',
-    duration: '12 weeks',
-    students: 856,
-    image: 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=800'
-  },
-  {
-    id: '3',
-    title: 'Node.js Backend Development',
-    description: 'Build robust backend applications with Node.js, Express, and MongoDB. Learn about RESTful APIs, authentication, and database integration in this intermediate-level course.',
-    level: 'Intermediate',
-    instructor: 'Mike Brown',
-    duration: '10 weeks',
-    students: 692,
-    image: 'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=800'
-  }
-];
+
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams();
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const { selectedCourse, setSelectedCourse, enrollInCourse, isEnrolled } = useCourseStore();
-  const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
 
-  useEffect(() => {
-    // Simulate API call
-    const fetchCourse = async () => {
-      setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const course = mockCourses.find(c => c.id === id);
-      if (course) {
-        setSelectedCourse(course);
-      }
-      setIsLoading(false);
-    };
+  // Fetch course from GraphQL backend
+  const { data: courseData, loading: courseLoading, error: courseError } = useQuery(GET_COURSE, {
+    variables: { id: id as string },
+    skip: !id,
+  });
 
-    fetchCourse();
-  }, [id, setSelectedCourse]);
+  // Enrollment mutation
+  const [enrollUserMutation] = useMutation(ENROLL_USER);
+
+  useEffect(() => {
+    if (courseData?.course) {
+      // Convert backend course to frontend format
+      const backendCourse: BackendCourse = courseData.course;
+      const frontendCourse: Course = {
+        id: backendCourse.id,
+        title: backendCourse.title,
+        description: backendCourse.description,
+        level: convertLevelToFrontend(backendCourse.level),
+        instructor: backendCourse.enrollments?.find(e => e.role === 'PROFESSOR')?.user?.name || 'Unknown',
+        duration: '8-12 weeks',
+        students: backendCourse.enrollments?.filter(e => e.role === 'STUDENT').length || 0,
+        image: `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000000)}/pexels-photo-${Math.floor(Math.random() * 1000000)}.jpeg?auto=compress&cs=tinysrgb&w=800`
+      };
+      setSelectedCourse(frontendCourse);
+    }
+  }, [courseData, setSelectedCourse]);
 
   const handleEnroll = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       router.push('/login');
       return;
     }
@@ -83,18 +65,31 @@ const CourseDetailPage: React.FC = () => {
     if (!selectedCourse) return;
 
     setIsEnrolling(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    enrollInCourse(selectedCourse.id);
-    setIsEnrolling(false);
-    router.push(`/enrollment-confirmation/${selectedCourse.id}`);
+    try {
+      await enrollUserMutation({
+        variables: {
+          userId: user.id,
+          courseId: selectedCourse.id,
+          role: 'STUDENT'
+        }
+      });
+      
+      enrollInCourse(selectedCourse.id);
+      router.push(`/enrollment-confirmation/${selectedCourse.id}`);
+    } catch (error) {
+      console.error('Enrollment failed:', error);
+      // Handle error (show toast, etc.)
+    } finally {
+      setIsEnrolling(false);
+    }
   };
 
   const handleEdit = () => {
     router.push(`/course/${id}/edit`);
   };
 
-  if (isLoading) {
+  if (courseLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -102,11 +97,14 @@ const CourseDetailPage: React.FC = () => {
     );
   }
 
-  if (!selectedCourse) {
+  if (courseError || !selectedCourse) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Course Not Found</h1>
+          <p className="text-gray-600 mb-4">
+            {courseError ? 'Unable to load course data.' : 'The course you\'re looking for doesn\'t exist.'}
+          </p>
           <Button onClick={() => router.push('/')}>
             Back to Home
           </Button>

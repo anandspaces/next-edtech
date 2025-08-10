@@ -3,10 +3,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { useQuery } from '@apollo/client';
 import { useCourseStore, Course, CourseLevel } from '@/store/course-store';
 import CourseGrid from '@/components/course/CourseGrid';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/button';
+import { GET_COURSES } from '@/lib/graphql/queries';
+import { Course as BackendCourse, convertLevelToFrontend } from '@/lib/types';
 
 // Mock courses data
 const mockCourses: Course[] = [
@@ -74,22 +77,29 @@ const mockCourses: Course[] = [
 
 const HomePage: React.FC = () => {
   const { courses, setCourses } = useCourseStore();
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<CourseLevel | 'All'>('All');
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
 
-  useEffect(() => {
-    // Simulate API call
-    const fetchCourses = async () => {
-      setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setCourses(mockCourses);
-      setIsLoading(false);
-    };
+  // Fetch courses from GraphQL backend
+  const { data: coursesData, loading: coursesLoading, error: coursesError } = useQuery(GET_COURSES);
 
-    fetchCourses();
-  }, [setCourses]);
+  useEffect(() => {
+    if (coursesData?.courses) {
+      // Convert backend courses to frontend format
+      const frontendCourses: Course[] = coursesData.courses.map((backendCourse: BackendCourse) => ({
+        id: backendCourse.id,
+        title: backendCourse.title,
+        description: backendCourse.description,
+        level: convertLevelToFrontend(backendCourse.level),
+        instructor: backendCourse.enrollments?.find(e => e.role === 'PROFESSOR')?.user?.name || 'Unknown',
+        duration: '8-12 weeks', // Default duration
+        students: backendCourse.enrollments?.length || 0,
+        image: `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000000)}/pexels-photo-${Math.floor(Math.random() * 1000000)}.jpeg?auto=compress&cs=tinysrgb&w=800`
+      }));
+      setCourses(frontendCourses);
+    }
+  }, [coursesData, setCourses]);
 
   useEffect(() => {
     if (!courses) return;
@@ -115,10 +125,24 @@ const HomePage: React.FC = () => {
 
   const levels: (CourseLevel | 'All')[] = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 
-  if (isLoading) {
+  if (coursesLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (coursesError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Unable to load courses</h2>
+          <p className="text-gray-600 mb-4">Please make sure the backend server is running on http://localhost:4000</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
       </div>
     );
   }

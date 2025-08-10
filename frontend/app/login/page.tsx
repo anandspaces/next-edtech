@@ -4,30 +4,52 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AcademicCapIcon } from '@heroicons/react/24/outline';
+import { useQuery } from '@apollo/client';
 import { useAuthStore, UserRole } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
+import { GET_USERS } from '@/lib/graphql/queries';
+import { User } from '@/lib/types';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('student');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   
-  const { login } = useAuthStore();
+  const { loginWithBackendUser } = useAuthStore();
   const router = useRouter();
+  
+  // Fetch users from backend for authentication
+  const { data: usersData, loading: usersLoading } = useQuery(GET_USERS);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !name) return;
 
     setIsLoading(true);
+    setError('');
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    login(email, name, role);
-    setIsLoading(false);
-    router.push('/');
+    try {
+      // Check if user exists in backend
+      const backendUser = usersData?.users?.find((user: User) => 
+        user.email.toLowerCase() === email.toLowerCase()
+      );
+      
+      if (backendUser) {
+        // User found in backend, log them in with backend user data
+        loginWithBackendUser(backendUser, role);
+        router.push('/');
+      } else {
+        // For demo purposes, show available users
+        setError(`User not found. Available demo users: ${usersData?.users?.map((u: User) => u.email).join(', ')}`);
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -46,6 +68,12 @@ const LoginPage: React.FC = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+          
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               Email Address
@@ -94,14 +122,19 @@ const LoginPage: React.FC = () => {
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading || !email || !name}
+            disabled={isLoading || usersLoading || !email || !name}
           >
-            {isLoading ? 'Signing In...' : 'Sign In'}
+            {isLoading || usersLoading ? 'Signing In...' : 'Sign In'}
           </Button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Demo credentials - use any email and name</p>
+          <p>Demo users:</p>
+          <div className="mt-2 space-y-1">
+            <p>• alice@example.com (Alice Johnson)</p>
+            <p>• bob@example.com (Bob Smith)</p>
+            <p>• charlie@example.com (Dr. Charlie Brown)</p>
+          </div>
         </div>
       </motion.div>
     </div>
